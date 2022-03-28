@@ -8,68 +8,11 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-class Workout {
-	date = new Date();
-	id = Date.now().toString().slice(-10);
-
-	constructor(coords, distance, duration) {
-		this.coords = coords; // [lat,lng]
-		this.distance = distance; // in km
-		this.duration = duration; // in min
-	}
-
-	_setDescription() {
-		// prettier-ignore
-		const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-		this.description = `${this.type[0].toUpperCase() + this.type.slice(1)} on ${
-			months[this.date.getMonth()]
-		} ${this.date.getDate()}`;
-	}
-}
-
-class Running extends Workout {
-	type = 'running';
-
-	constructor(coords, distance, duration, cadence) {
-		super(coords, distance, duration);
-		this.cadence = cadence;
-		this.calcPace();
-		this._setDescription();
-	}
-
-	calcPace() {
-		// min/km
-		this.pace = this.duration / this.distance;
-		return this.pace;
-	}
-}
-
-class Cycling extends Workout {
-	type = 'cycling';
-
-	constructor(coords, distance, duration, elevationGain) {
-		super(coords, distance, duration);
-		this.elevationGain = elevationGain;
-		this.calcSpeed();
-		this._setDescription();
-	}
-
-	calcSpeed() {
-		// km/h
-		this.speed = this.distance / (this.duration / 60);
-		return this.speed;
-	}
-}
-
-// const run1 = new Running([39, -12], 5.2, 24, 178);
-// const cycling1 = new Cycling([39, -12], 27, 95, 523);
-// console.log(run1);
-
-// *****************************************
+// =========================================== //
 // APPLICATION
 class App {
 	#map;
+	#mapZoomLevel = 13;
 	#mapEvent;
 	#workouts = [];
 
@@ -77,6 +20,7 @@ class App {
 		this._getPosition();
 		form.addEventListener('submit', this._newWorkout.bind(this));
 		inputType.addEventListener('change', this._toggleElevationField);
+		containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
 	}
 
 	_getPosition() {
@@ -90,7 +34,7 @@ class App {
 		const { latitude } = position.coords;
 		const { longitude } = position.coords;
 		const coords = [latitude, longitude];
-		this.#map = L.map('map').setView(coords, 13);
+		this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
 		L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
 			attribution:
@@ -254,6 +198,79 @@ class App {
 		}
 		form.insertAdjacentHTML('afterend', html);
 	}
+
+	_moveToPopup(e) {
+		const workoutEl = e.target.closest('.workout');
+
+		if (!workoutEl) return;
+
+		const workout = this.#workouts.find(
+			(workout) => workout.id === workoutEl.dataset.id
+		);
+
+		this.#map.setView(workout.coords, this.#mapZoomLevel, {
+			animate: true,
+			pan: { duration: 1 },
+		});
+	}
 }
+
+class Workout {
+	date = new Date();
+	id = Date.now().toString().slice(-10);
+
+	constructor(coords, distance, duration) {
+		this.coords = coords; // [lat,lng]
+		this.distance = distance; // in km
+		this.duration = duration; // in min
+	}
+
+	_setDescription() {
+		// prettier-ignore
+		const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+		this.description = `${this.type[0].toUpperCase() + this.type.slice(1)} on ${
+			months[this.date.getMonth()]
+		} ${this.date.getDate()}`;
+	}
+}
+
+class Running extends Workout {
+	type = 'running';
+
+	constructor(coords, distance, duration, cadence) {
+		super(coords, distance, duration);
+		this.cadence = cadence;
+		this.calcPace();
+		this._setDescription();
+	}
+
+	calcPace() {
+		// min/km
+		this.pace = this.duration / this.distance;
+		return this.pace;
+	}
+}
+
+class Cycling extends Workout {
+	type = 'cycling';
+
+	constructor(coords, distance, duration, elevationGain) {
+		super(coords, distance, duration);
+		this.elevationGain = elevationGain;
+		this.calcSpeed();
+		this._setDescription();
+	}
+
+	calcSpeed() {
+		// km/h
+		this.speed = this.distance / (this.duration / 60);
+		return this.speed;
+	}
+}
+
+// const run1 = new Running([39, -12], 5.2, 24, 178);
+// const cycling1 = new Cycling([39, -12], 27, 95, 523);
+// console.log(run1);
 
 const app = new App();
